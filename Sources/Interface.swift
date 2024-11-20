@@ -43,6 +43,9 @@ public protocol Interface {
     /// }
     /// ```
     var masks6: [in6_addr] { get }
+    
+    /// Interface broadcast address, if applicable.
+    var broadcast: in_addr? { get }
 }
 
 extension Interface {

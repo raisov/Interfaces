@@ -28,9 +28,19 @@ public struct IFAInterface {
     
     public var mask4: in_addr?
     
+    public var dst4: in_addr?
+    
     public var ip6: [in6_addr]
     
     public var masks6: [in6_addr]
+    
+    public var dst6: in6_addr?
+    
+    public var broadcast: in_addr? {
+        guard options.contains(.broadcast) else { return nil }
+        guard !options.contains(.pointopoint) else { return nil }
+        return dst4
+    }
 }
 
 extension IFAInterface: Interface {
@@ -47,8 +57,11 @@ extension IFAInterface: Interface {
         var flags = [String: Int32]()
         var ip4 = [String: [in_addr]]()
         var mask4 = [String: in_addr]()
+        var dst4 = [String: in_addr]()
         var ip6 = [String: [in6_addr]]()
         var masks6 = [String: [in6_addr]]()
+        var dst6 = [String: in6_addr]()
+
         
         
         for address in addresses {
@@ -64,6 +77,21 @@ extension IFAInterface: Interface {
                 case AF_INET6:
                     if let in6 = mask_p.internetAddress, in6.isWellFormed, let addr = in6.ip as? in6_addr {
                         masks6[name, default: []].append(addr)
+                    }
+                default:
+                    break
+                }
+            }
+            
+            if let dst_p = address.ifa_dstaddr {
+                switch Int32(dst_p.pointee.sa_family) {
+                case AF_INET:
+                    if let in4 = dst_p.internetAddress, let addr = in4.ip as? in_addr {
+                        dst4[name] = addr
+                    }
+                case AF_INET6:
+                    if let in6 = dst_p.internetAddress, in6.isWellFormed, let addr = in6.ip as? in6_addr {
+                        dst6[name] = addr
                     }
                 default:
                     break
@@ -111,8 +139,10 @@ extension IFAInterface: Interface {
                 options: InterfaceOptions(rawValue: flags[name, default: 0]),
                 ip4: ip4[name, default: []],
                 mask4: mask4[name],
+                dst4: dst4[name],
                 ip6: ip6[name, default: []],
-                masks6: masks6[name, default: []]
+                masks6: masks6[name, default: []],
+                dst6: dst6[name]
             )
         }
     }
