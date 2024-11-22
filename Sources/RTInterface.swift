@@ -7,10 +7,17 @@ import Foundation
 import Darwin.net.route
 
 /// A type describing network interface
-public struct RTInterface {    
+public struct RTInterface: Interface {
+    
+    private func withHeaderPointer<R>(_ body: (UnsafePointer<if_msghdr>) -> R) -> R {
+        interfaceMessages.withUnsafeBytes {
+            let p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
+            return body(p)
+        }
+    }
 
     /// Contains routing messages with information about network interface
-    fileprivate let interfaceMessages: Data
+    private let interfaceMessages: Data
 
     /// Creates `Interface` as an element of `Interfaces` collection.
     /// - parameter interfaceMessages: part of the `sysctl` buffer with
@@ -32,17 +39,15 @@ public struct RTInterface {
 
     ///
     public var index: Int32 {
-        return interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return numericCast(ifm_p.pointee.ifm_index)
+        withHeaderPointer {
+            numericCast($0.pointee.ifm_index)
         }
     }
 
     /// BSD name of interface
     public var name: String {
-        interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return ifm_p.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
+        withHeaderPointer {
+            $0.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
                 $0.name
             }
         }
@@ -51,22 +56,19 @@ public struct RTInterface {
     /// Hardware (link level) address of interface;
     /// for ethernet - so-called MAC address.
     public var link: [UInt8]? {
-        return interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            let result: [UInt8]? = ifm_p.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
+        withHeaderPointer {
+            $0.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
                 guard $0.address.count != 0 else {return nil}
                 return $0.address
             }
-            return result
         }
     }
 
     /// True, if it is possible to work with interface as with ethernet;
     /// for example, Wi-Fi interface is ethernet compatible.
     public var isEthernetCompatible: Bool {
-        interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return ifm_p.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
+        withHeaderPointer {
+            $0.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
                 $0.type == IFT_ETHER
             }
         }
@@ -75,41 +77,37 @@ public struct RTInterface {
 
     /// That's it, the type of interface.
     public var type: InterfaceType {
-        return interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return InterfaceType(Int32(ifm_p.pointee.ifm_data.ifi_type))
+        withHeaderPointer {
+            InterfaceType(Int32($0.pointee.ifm_data.ifi_type))
         }
     }
+    
 
     /// This interface options.
     public var options: InterfaceOptions {
-        return interfaceMessages.withUnsafeBytes {
-            let msghdr_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return InterfaceOptions(rawValue: msghdr_p.pointee.ifm_flags)
+        withHeaderPointer {
+            InterfaceOptions(rawValue: $0.pointee.ifm_flags)
         }
     }
 
     /// Maximum Transmission Unit size for interface.
     public var mtu: Int {
-        interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return Int(ifm_p.pointee.ifm_data.ifi_mtu)
+        withHeaderPointer {
+            Int($0.pointee.ifm_data.ifi_mtu)
         }
     }
 
     /// Network routing metric.
     public var metric: Int {
-        return interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return Int(ifm_p.pointee.ifm_data.ifi_metric)
+        withHeaderPointer {
+            Int($0.pointee.ifm_data.ifi_metric)
         }
     }
 
     /// Possible link speed; may be 0 if undefined.
     public var baudrate: Int {
-        interfaceMessages.withUnsafeBytes {
-            let ifm_p = $0.baseAddress!.assumingMemoryBound(to: if_msghdr.self)
-            return Int(ifm_p.pointee.ifm_data.ifi_baudrate)
+        withHeaderPointer {
+            Int($0.pointee.ifm_data.ifi_baudrate)
         }
     }
 
@@ -124,7 +122,7 @@ public struct RTInterface {
     ///     - count: size of the memory buffer
     /// - returns: specified function suitable for using as an argument for `withUnsafeBytes`
     /// - Warning: Don't try to undestand this function. It's dangerous for your peace of mind!
-    func addressExtractor(of kind: Int32, _ count: Int) ->
+    private func addressExtractor(of kind: Int32, _ count: Int) ->
         (_ start: UnsafePointer<Int8>) -> [IPAddress] {
 
             func sa_rlen<T>(_ x: T) -> Int where T: BinaryInteger {
@@ -271,12 +269,6 @@ public struct RTInterface {
     }
 }
 
-extension RTInterface: Interface {
-    public static func listInterfaces() -> any Sequence<any Interface> {
-        RTInterfaces()
-    }
-}
-
 public struct RTInterfaces: Collection {
     public typealias Element = Interface
 
@@ -286,19 +278,26 @@ public struct RTInterfaces: Collection {
     public init() {
         var needed: size_t = 0
         var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST, 0]
+        
         guard sysctl(&mib[0], 6, nil, &needed, nil, 0) == 0 else {
             fatalError(String(validatingCString: strerror(errno)) ?? "")
         }
-        let buf_p = UnsafeMutableRawPointer.allocate(byteCount: needed, alignment: MemoryLayout<rt_msghdr>.alignment)
+        let buf_p = UnsafeMutableRawPointer.allocate(
+            byteCount: needed,
+            alignment: MemoryLayout<rt_msghdr>.alignment
+        )
+        
         guard sysctl(&mib[0], 6, buf_p, &needed, nil, 0) == 0 else {
             fatalError(String(validatingCString: strerror(errno)) ?? "")
         }
         // Wrap sysctl's results with `Data` for memory management
-        self.routingMessages = Data(bytesNoCopy: buf_p, count: needed, deallocator: .custom { buf_p, _ in
-            buf_p.deallocate()
-            })
+        self.routingMessages = Data(
+            bytesNoCopy: buf_p,
+            count: needed,
+            deallocator: .custom { buf_p, _ in buf_p.deallocate() }
+        )
     }
-
+    
 /// The following are necessary to ensure conformance `Collection` protocol.
 
     public struct Index: Comparable {
