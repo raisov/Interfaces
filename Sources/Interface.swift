@@ -1,9 +1,11 @@
 //  Interface.swift
-//  Interfaces2
-//
+//  Interfaces package
+//  Copyright (c) 2018 Vladimir Raisov
+//  Licensed under MIT License
 import Darwin.net
 import Sockets
 
+/// Network interface description
 public protocol Interface {
     ///
     var index: Int32 { get }
@@ -11,10 +13,9 @@ public protocol Interface {
     /// BSD name of interface
     var name: String { get }
     
-    
     /// Hardware (link level) address of interface;
     /// so-called MAC address for ethernet compatible interface.
-    var link: [UInt8]? { get }
+    var link: [UInt8] { get }
     
     /// True, if it is possible to work with interface as with ethernet;
     /// for example, Wi-Fi interface is ethernet compatible.
@@ -25,16 +26,25 @@ public protocol Interface {
     
     /// This interface options.
     var options: InterfaceOptions { get }
-    
+
+    /// Maximum Transmission Unit size for interface.
+    var mtu: UInt32 { get }
+
+    /// Network routing metric.
+    var metric: UInt32 { get }
+
+    /// Possible link speed; may be 0 if undefined.
+    var baudrate: UInt32 { get }
+
     /// Array of all IPv4 addresses (including aliases) of the interface.
     var ip4: [in_addr] { get }
     
     /// IPv4 network mask.
     var mask4: in_addr? { get }
-
+    
     /// Array of all IPv6 addresses of the interface.
     var ip6: [in6_addr] { get }
- 
+    
     /// Array of all IPv6 network masks of the interface.
     /// - Note: The number and order of the masks correspond to the number and order
     /// of the ip6 addresses, so that they can be connected together using `zip` function.
@@ -47,7 +57,14 @@ public protocol Interface {
     
     /// Interface broadcast address, if applicable.
     var broadcast: in_addr? { get }
+
+    /// Destination addree for point to point interface
+    var destination4: in_addr? { get }
+    var destination6: in6_addr? { get }
+    
 }
+
+// MARK: - Implementation
 
 extension Interface {
     /// `masks6` represented as prefix lengths.
@@ -77,6 +94,7 @@ extension Interface {
 // MARK: - Interfaces
 
 public enum Interfaces {
+    /// Get network interfaces innformation
     public static func list() -> any Sequence<any Interface> {
 #if canImport(Darwin.net.route)
         RTInterfaces()
