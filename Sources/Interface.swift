@@ -2,6 +2,7 @@
 //  Interfaces2
 //
 import Darwin.net
+import Sockets
 
 public protocol Interface {
     ///

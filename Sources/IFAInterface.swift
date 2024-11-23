@@ -1,15 +1,8 @@
-//
-//  IFAInterface.swift
-//  Interface2
-//
-//  Created by bp on 19.11.2024.
-//
-
-
 //  IFAInterface.swift
 //  Interfaces
 //
 import Darwin.net
+import Sockets
 
 public struct IFAInterface {
     public var index: Int32
@@ -40,6 +33,10 @@ public struct IFAInterface {
         guard options.contains(.broadcast) else { return nil }
         guard !options.contains(.pointopoint) else { return nil }
         return dst4
+    }
+    
+    public var addresses: [IPAddress] {
+        ip4 + ip6
     }
 }
 
