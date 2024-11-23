@@ -1,11 +1,13 @@
-//
 //  InterfaceType.swift
-//  Interfaces2
-//
+//  Interfaces package
+//  Copyright (c) 2018 Vladimir Raisov
+//  Licensed under MIT License
 import Darwin.net
 
-/// Enumerates basic interface types.
+/// List of basic interface types.
 public enum InterfaceType: Equatable {
+    /// Possible tunnel interface
+    case other
     /// Loopback interface.
     case loopback
     /// Ethernet interface.
@@ -22,12 +24,13 @@ public enum InterfaceType: Equatable {
     case fireware
     /// Transparent bridge interface.
     case bridge
-    /// Other, value is a raw interface type code;
+    /// Value is a raw interface type code;
     /// for possible values see net/if_types.h
-    case other(Int32)
+    case unknown(Int32)
 
     public init(_ code: Int32) {
         switch code {
+        case IFT_OTHER: self = .other
         case IFT_LOOP: self = .loopback
         case IFT_ETHER: self = .ethernet
         case IFT_GIF: self = .gif
@@ -36,13 +39,14 @@ public enum InterfaceType: Equatable {
         case IFT_IEEE8023ADLAG: self = .linkAggregate
         case IFT_IEEE1394: self = .fireware
         case IFT_BRIDGE: self = .bridge
-        default: self = .other(code)
+        default: self = .unknown(code)
         }
     }
 
     /// Raw interface type code, espcially useful in `.other` case.
     public var code: Int32 {
         switch self {
+        case .other : return IFT_OTHER
         case .loopback: return IFT_LOOP
         case .ethernet: return IFT_ETHER
         case .gif: return IFT_GIF
@@ -52,7 +56,7 @@ public enum InterfaceType: Equatable {
         case .fireware: return IFT_IEEE1394
         case .bridge: return IFT_BRIDGE
         /// For other possible values, see net/if_types.h for possible values.
-        case .other(let _code): return _code
+        case .unknown(let _code): return _code
         }
     }
 
