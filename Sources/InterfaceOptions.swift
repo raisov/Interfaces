@@ -1,9 +1,10 @@
-//
 //  InterfaceOptions.swift
-//  Interfaces2
+//  Interfaces package
+//  Copyright (c) 2018 Vladimir Raisov
+//  Licensed under MIT License
 import Darwin.net
 
-/// Enumerates possible interface options.
+/// List of some useful interface options.
 public struct InterfaceOptions: OptionSet, Sendable {
     public let rawValue: Int32
     public init(rawValue: Int32) {self.rawValue = rawValue}
