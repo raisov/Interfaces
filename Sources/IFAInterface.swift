@@ -112,22 +112,22 @@ extension IFAInterface {
             
             if let addr_p = address.ifa_addr {
                 switch Int32(addr_p.pointee.sa_family) {
-                case AF_INET:
+                case sockaddr_in.family:
                     if let addr = addr_p.in?.sin_addr {
                         ip4[name, default: []].append(addr)
                     }
-                case AF_INET6:
+                case sockaddr_in6.family:
                     if let addr = addr_p.in6?.sin6_addr {
                         ip6[name, default: []].append(addr)
                     }
-                case AF_LINK:
+                case sockaddr_dl.family:
                     if let data_p = address.ifa_data?.assumingMemoryBound(to: if_data.self) {
                         types[name] = data_p.pointee.ifi_type
                         mtu[name] = data_p.pointee.ifi_mtu
                         metric[name] = data_p.pointee.ifi_metric
                         baudrate[name] = data_p.pointee.ifi_baudrate
-                        if addr_p.dl != nil {
-                            addr_p.withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
+                        addr_p.withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
+                            if $0.pointee.sdl_len >= MemoryLayout<sockaddr_dl>.size {
                                 links[name] = $0.address
                             }
                         }
