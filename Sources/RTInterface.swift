@@ -23,7 +23,8 @@ public struct RTInterface: Interface {
             assert(ifm_p.pointee.ifm_addrs & RTA_IFP != 0)
             assert(ifm_p.pointee.ifm_index != 0)
             ifm_p.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
-                assert($0.pointee.isWellFormed)
+                assert($0.pointee.family == sockaddr_dl.family)
+                assert($0.pointee.sdl_len >= MemoryLayout<sockaddr_dl>.size)
                 assert($0.index == ifm_p.pointee.ifm_index)
             }
         }
@@ -272,7 +273,8 @@ public struct RTInterfaces: Collection {
             assert(ifm_p.pointee.ifm_addrs & RTA_IFP != 0)
             assert(ifm_p.pointee.ifm_index != 0)
             ifm_p.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
-                assert($0.pointee.isWellFormed)
+                assert($0.pointee.family == sockaddr_dl.family)
+                assert($0.pointee.sdl_len >= MemoryLayout<sockaddr_dl>.size)
                 assert($0.index == ifm_p.pointee.ifm_index)
             }
             return nextIndex(from: given.value + Int(ifm_p.pointee.ifm_msglen))
