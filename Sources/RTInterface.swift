@@ -141,12 +141,12 @@ public struct RTInterface: Interface {
     }
     
     private func getIP4Addresses(of kind: Int32) -> [in_addr] {
-        getAddresses(of: kind).compactMap { $0.in?.sin_addr }
+        getAddresses(of: kind).compactMap { $0.sin?.sin_addr }
     }
     
     private func getIP6Addresses(of kind: Int32) -> [in6_addr] {
         getAddresses(of: kind).compactMap {
-            guard var ip6 = $0.in6?.sin6_addr else { return nil }
+            guard var ip6 = $0.sin6?.sin6_addr else { return nil }
             if ip6.isLinkLocal {
                 ip6.__u6_addr.__u6_addr32.0 &= 0x80fe
                 ip6.__u6_addr.__u6_addr32.1 = 0

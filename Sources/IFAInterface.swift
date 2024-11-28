@@ -83,11 +83,11 @@ extension IFAInterface {
             if let mask_p = address.ifa_netmask {
                 switch Int32(mask_p.pointee.sa_family) {
                 case AF_INET:
-                    if let mask = mask_p.in?.sin_addr {
+                    if let mask = mask_p.sin?.sin_addr {
                         mask4[name] = mask
                     }
                 case AF_INET6:
-                    if let mask = mask_p.in6?.sin6_addr {
+                    if let mask = mask_p.sin6?.sin6_addr {
                         masks6[name, default: []].append(mask)
                     }
                 default:
@@ -98,11 +98,11 @@ extension IFAInterface {
             if let dst_p = address.ifa_dstaddr {
                 switch Int32(dst_p.pointee.sa_family) {
                 case AF_INET:
-                    if let addr = dst_p.in?.sin_addr {
+                    if let addr = dst_p.sin?.sin_addr {
                         dst4[name] = addr
                     }
                 case AF_INET6:
-                    if let addr = dst_p.in6?.sin6_addr {
+                    if let addr = dst_p.sin6?.sin6_addr {
                         dst6[name] = addr
                     }
                 default:
@@ -113,11 +113,11 @@ extension IFAInterface {
             if let addr_p = address.ifa_addr {
                 switch Int32(addr_p.pointee.sa_family) {
                 case sockaddr_in.family:
-                    if let addr = addr_p.in?.sin_addr {
+                    if let addr = addr_p.sin?.sin_addr {
                         ip4[name, default: []].append(addr)
                     }
                 case sockaddr_in6.family:
-                    if let addr = addr_p.in6?.sin6_addr {
+                    if let addr = addr_p.sin6?.sin6_addr {
                         ip6[name, default: []].append(addr)
                     }
                 case sockaddr_dl.family:
