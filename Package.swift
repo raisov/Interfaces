@@ -12,7 +12,7 @@ let package = Package(
             targets: ["Interfaces"]),
     ],
     dependencies: [
-        .package(path: "../simplenet/Sockets/")
+        .package(url: "https://github.com/raisov/Sockets.git", branch: "main")
     ],
     targets: [
         .target(
