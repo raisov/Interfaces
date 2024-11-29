@@ -127,7 +127,7 @@ extension IFAInterface {
                         metric[name] = data_p.pointee.ifi_metric
                         baudrate[name] = data_p.pointee.ifi_baudrate
                         addr_p.withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
-                            if $0.pointee.sdl_len >= MemoryLayout<sockaddr_dl>.size {
+                            if $0.pointee.sdl_len >= sockaddr_dl.size {
                                 links[name] = $0.address
                             }
                         }

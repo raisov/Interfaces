@@ -24,7 +24,7 @@ public struct RTInterface: Interface {
             assert(ifm_p.pointee.ifm_index != 0)
             ifm_p.advanced(by: 1).withMemoryRebound(to: sockaddr_dl.self, capacity: 1) {
                 assert($0.pointee.family == sockaddr_dl.family)
-                assert($0.pointee.sdl_len >= MemoryLayout<sockaddr_dl>.size)
+                assert($0.pointee.sdl_len >= sockaddr_dl.size)
                 assert($0.index == ifm_p.pointee.ifm_index)
             }
         }
