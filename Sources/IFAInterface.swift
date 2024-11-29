@@ -131,7 +131,6 @@ extension IFAInterface {
                                 links[name] = $0.address
                             }
                         }
-                        data_p.pointee.ifi_baudrate
                     }
                 default:
                     break
