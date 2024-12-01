@@ -12,7 +12,7 @@ let package = Package(
             targets: ["Interfaces", "FunctionalType", "InterfaceType", "InterfaceFlags"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/raisov/Sockets.git", branch: "main")
+        .package(url: "https://github.com/raisov/Sockets.git", branch: "ex/definitions")
     ],
     targets: [
         .target(name: "FunctionalType"),
