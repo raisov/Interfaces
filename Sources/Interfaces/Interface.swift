@@ -24,7 +24,7 @@ public protocol Interface {
     var type: InterfaceType? { get }
     
     /// This interface options.
-    var options: InterfaceFlags { get }
+    var flags: InterfaceFlags { get }
 
     /// Maximum Transmission Unit size for interface.
     var mtu: UInt32 { get }

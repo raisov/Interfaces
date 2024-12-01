@@ -74,7 +74,7 @@ public struct RTInterface: Interface {
         }
     }
         
-    public var options: InterfaceFlags {
+    public var flags: InterfaceFlags {
         withHeaderPointer {
             InterfaceFlags(rawValue: $0.pointee.ifm_flags)
         }
@@ -114,18 +114,18 @@ public struct RTInterface: Interface {
     }
     
     public var broadcast: in_addr? {
-        guard self.options.contains(.broadcast) else {return nil}
-        guard !self.options.contains(.pointopoint) else {return nil}
+        guard self.flags.contains(.broadcast) else {return nil}
+        guard !self.flags.contains(.pointopoint) else {return nil}
         return getIP4Addresses(of: RTAX_BRD).first
     }
     
     public var destination4: in_addr? {
-        guard self.options.contains(.pointopoint) else {return nil}
+        guard self.flags.contains(.pointopoint) else {return nil}
         return getIP4Addresses(of: RTAX_BRD).first
     }
     
     public var destination6: in6_addr? {
-        guard self.options.contains(.pointopoint) else {return nil}
+        guard self.flags.contains(.pointopoint) else {return nil}
         return getIP6Addresses(of: RTAX_BRD).first
     }
 

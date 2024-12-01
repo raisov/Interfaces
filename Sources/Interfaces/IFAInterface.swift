@@ -17,7 +17,7 @@ public struct IFAInterface: Interface {
     
     public var type: InterfaceType?
     
-    public var options: InterfaceFlags
+    public var flags: InterfaceFlags
     
     public var mtu: UInt32
     
@@ -34,18 +34,18 @@ public struct IFAInterface: Interface {
     public var masks6: [in6_addr]
     
     public var broadcast: in_addr? {
-        guard options.contains(.broadcast) else { return nil }
-        guard !options.contains(.pointopoint) else { return nil }
+        guard flags.contains(.broadcast) else { return nil }
+        guard !flags.contains(.pointopoint) else { return nil }
         return dst4
     }
     
     public var destination4: in_addr? {
-        guard options.contains(.pointopoint) else { return nil }
+        guard flags.contains(.pointopoint) else { return nil }
         return dst4
     }
     
     public var destination6: in6_addr? {
-        guard options.contains(.pointopoint) else { return nil }
+        guard flags.contains(.pointopoint) else { return nil }
         return dst6
     }
 
@@ -151,7 +151,7 @@ extension IFAInterface {
                 name: name,
                 link: links[name, default: []],
                 type: InterfaceType(rawValue: numericCast(type)),
-                options: InterfaceFlags(rawValue: flags[name, default: 0]),
+                flags: InterfaceFlags(rawValue: flags[name, default: 0]),
                 mtu: mtu[name, default: 0],
                 metric: metric[name, default: 0],
                 baudrate: baudrate[name, default: 0],
