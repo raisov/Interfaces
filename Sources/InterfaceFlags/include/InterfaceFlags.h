@@ -14,7 +14,7 @@ typedef enum __attribute__((flag_enum)) : int32_t {
     /// Interface has a broadcast address.
     broadcast = IFF_BROADCAST,
     /// Loopback interface.
-    loopback_f = IFF_LOOPBACK,
+    loopback = IFF_LOOPBACK,
     /// Point-to-point link.
     pointopoint = IFF_POINTOPOINT,
     /// I don't know what does it mean, but ifconfig call it "SMART".

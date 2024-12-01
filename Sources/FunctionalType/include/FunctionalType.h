@@ -16,7 +16,7 @@ typedef enum __attribute__((enum_extensibility(open))) : unsigned long {
 
 typedef enum __attribute__((enum_extensibility(open))) : u_int32_t {
     unknown       = IFRTYPE_FUNCTIONAL_UNKNOWN,
-    loopback_ft    = IFRTYPE_FUNCTIONAL_LOOPBACK,
+    loopback    = IFRTYPE_FUNCTIONAL_LOOPBACK,
     wired         = IFRTYPE_FUNCTIONAL_WIRED,
     wifiInfra     = IFRTYPE_FUNCTIONAL_WIFI_INFRA,
     wifiAWDL      = IFRTYPE_FUNCTIONAL_WIFI_AWDL,
