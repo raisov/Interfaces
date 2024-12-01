@@ -5,6 +5,9 @@
 import Sockets
 import Foundation
 #if canImport(Darwin.net.route)
+import InterfaceType
+import InterfaceFlags
+import FunctionalType
 import Darwin.net.route
 
 public struct RTInterface: Interface {
@@ -63,15 +66,17 @@ public struct RTInterface: Interface {
         }
     }    
     
-    public var type: InterfaceType {
+    public var type: InterfaceType? {
         withHeaderPointer {
-            InterfaceType(Int32($0.pointee.ifm_data.ifi_type))
+            InterfaceType(
+                rawValue: numericCast(Int32($0.pointee.ifm_data.ifi_type)) 
+            )
         }
     }
         
-    public var options: InterfaceOptions {
+    public var options: InterfaceFlags {
         withHeaderPointer {
-            InterfaceOptions(rawValue: $0.pointee.ifm_flags)
+            InterfaceFlags(rawValue: $0.pointee.ifm_flags)
         }
     }
     public var mtu: UInt32 {

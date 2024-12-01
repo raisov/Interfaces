@@ -3,6 +3,10 @@
 //
 import Darwin.net
 import Sockets
+#if !canImport(Darwin.net.route)
+import InterfaceType
+import InterfaceFlags
+import FunctionalType
 
 public struct IFAInterface: Interface {
     public var index: Int32
@@ -11,11 +15,9 @@ public struct IFAInterface: Interface {
     
     public var link: [UInt8]
     
-    public var isEthernetCompatible: Bool
+    public var type: InterfaceType?
     
-    public var type: InterfaceType
-    
-    public var options: InterfaceOptions
+    public var options: InterfaceFlags
     
     public var mtu: UInt32
     
@@ -55,12 +57,15 @@ public struct IFAInterface: Interface {
 extension IFAInterface {
     static func listInterfaces() -> any Sequence<any Interface> {
         var addrList: UnsafeMutablePointer<ifaddrs>?
+        
         defer { freeifaddrs(addrList) }
         guard getifaddrs(&addrList) == 0 else { return [] }
+        
         let addresses = sequence(
             first: addrList,
             next: { $0.map(\.pointee.ifa_next) }
         ).compactMap(\.?.pointee)
+        
         var types = [String: UInt8]()
         var links = [String: [UInt8]]()
         var flags = [String: Int32]()
@@ -145,9 +150,8 @@ extension IFAInterface {
                 index: Int32(bitPattern: if_nametoindex(name.cString(using: .ascii))),
                 name: name,
                 link: links[name, default: []],
-                isEthernetCompatible: true,
-                type: InterfaceType(Int32(type)),
-                options: InterfaceOptions(rawValue: flags[name, default: 0]),
+                type: InterfaceType(rawValue: numericCast(type)),
+                options: InterfaceFlags(rawValue: flags[name, default: 0]),
                 mtu: mtu[name, default: 0],
                 metric: metric[name, default: 0],
                 baudrate: baudrate[name, default: 0],
@@ -161,3 +165,4 @@ extension IFAInterface {
         }
     }
 }
+#endif
