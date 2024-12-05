@@ -316,4 +316,72 @@ public struct RTInterfaces: Collection {
         }
     }
 }
+
+public struct RTSequence: Sequence {
+    public func makeIterator() -> RTIterator {
+        RTIterator()
+    }
+}
+
+public final class RTIterator: IteratorProtocol {
+    public init() {
+        var requiredMemory: size_t = 0
+        var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST, 0]
+        
+        guard sysctl(&mib[0], 6, nil, &requiredMemory, nil, 0) == 0 else {
+            fatalError(String(validatingCString: strerror(errno)) ?? "")
+        }
+
+        
+        baseAddress = UnsafeMutableRawPointer.allocate(
+            byteCount: requiredMemory,
+            alignment: MemoryLayout<rt_msghdr>.alignment
+        )
+        size = requiredMemory
+        
+        guard sysctl(&mib[0], 6, baseAddress, &requiredMemory, nil, 0) == 0 else {
+            fatalError(String(validatingCString: strerror(errno)) ?? "")
+        }
+        
+        offset = 0
+     }
+    
+    deinit {
+        baseAddress.deallocate()
+    }
+    
+    public func next() -> RTInterface? {
+        while offset < size {
+            let (version, type, length) = baseAddress.advanced(
+                by: offset
+            ).withMemoryRebound(to: rt_msghdr.self, capacity: 1) {
+                ($0.pointee.rtm_version, $0.pointee.rtm_type, $0.pointee.rtm_msglen)
+            }
+            let count: Int = numericCast(length)
+            
+            assert(offset + count <= size)
+            guard offset + count <= size else { return nil }
+            
+            let (addrs, index) = baseAddress.advanced(
+                by: offset
+            ).withMemoryRebound(to: if_msghdr.self, capacity: 1) {
+                ($0.pointee.ifm_addrs, $0.pointee.ifm_index)
+            }
+            
+            if version == RTM_VERSION && type == RTM_IFINFO &&
+                addrs & RTA_IFP != 0 && index != 0 {
+                return RTInterface(
+                    Data(bytes: baseAddress.advanced(by: offset), count: numericCast(length))
+                )
+            }
+            
+            offset += numericCast(length)
+        }
+        return nil
+    }
+    
+    private let size: Int
+    private let baseAddress: UnsafeMutableRawPointer
+    private var offset: Int
+}
 #endif
