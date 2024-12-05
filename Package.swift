@@ -9,14 +9,17 @@ let package = Package(
     products: [
         .library(
             name: "Interfaces",
-            targets: ["Interfaces"]),
+            targets: ["Interfaces", "FunctionalType", "InterfaceType", "InterfaceFlags"]),
     ],
     dependencies: [
         .package(url: "https://github.com/raisov/Sockets.git", branch: "main")
     ],
     targets: [
+        .target(name: "FunctionalType"),
+        .target(name: "InterfaceType"),
+        .target(name: "InterfaceFlags"),
         .target(
-            name: "Interfaces", dependencies: ["Sockets"]),
+            name: "Interfaces", dependencies: ["Sockets", "FunctionalType", "InterfaceType", "InterfaceFlags"]),
 
     ]
 )

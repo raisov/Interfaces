@@ -4,6 +4,9 @@
 //  Licensed under MIT License
 import Darwin.net
 import Sockets
+import InterfaceType
+import InterfaceFlags
+import FunctionalType
 
 /// Network interface description
 public protocol Interface {
@@ -17,15 +20,11 @@ public protocol Interface {
     /// so-called MAC address for ethernet compatible interface.
     var link: [UInt8] { get }
     
-    /// True, if it is possible to work with interface as with ethernet;
-    /// for example, Wi-Fi interface is ethernet compatible.
-    var isEthernetCompatible: Bool { get }
-    
     /// That's it, the type of interface.
-    var type: InterfaceType { get }
+    var type: InterfaceType? { get }
     
     /// This interface options.
-    var options: InterfaceOptions { get }
+    var flags: InterfaceFlags { get }
 
     /// Maximum Transmission Unit size for interface.
     var mtu: UInt32 { get }

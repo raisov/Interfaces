@@ -5,6 +5,9 @@
 import Sockets
 import Foundation
 #if canImport(Darwin.net.route)
+import InterfaceType
+import InterfaceFlags
+import FunctionalType
 import Darwin.net.route
 
 public struct RTInterface: Interface {
@@ -63,15 +66,17 @@ public struct RTInterface: Interface {
         }
     }    
     
-    public var type: InterfaceType {
+    public var type: InterfaceType? {
         withHeaderPointer {
-            InterfaceType(Int32($0.pointee.ifm_data.ifi_type))
+            InterfaceType(
+                rawValue: numericCast(Int32($0.pointee.ifm_data.ifi_type)) 
+            )
         }
     }
         
-    public var options: InterfaceOptions {
+    public var flags: InterfaceFlags {
         withHeaderPointer {
-            InterfaceOptions(rawValue: $0.pointee.ifm_flags)
+            InterfaceFlags(rawValue: $0.pointee.ifm_flags)
         }
     }
     public var mtu: UInt32 {
@@ -109,18 +114,18 @@ public struct RTInterface: Interface {
     }
     
     public var broadcast: in_addr? {
-        guard self.options.contains(.broadcast) else {return nil}
-        guard !self.options.contains(.pointopoint) else {return nil}
+        guard self.flags.contains(.broadcast) else {return nil}
+        guard !self.flags.contains(.pointopoint) else {return nil}
         return getIP4Addresses(of: RTAX_BRD).first
     }
     
     public var destination4: in_addr? {
-        guard self.options.contains(.pointopoint) else {return nil}
+        guard self.flags.contains(.pointopoint) else {return nil}
         return getIP4Addresses(of: RTAX_BRD).first
     }
     
     public var destination6: in6_addr? {
-        guard self.options.contains(.pointopoint) else {return nil}
+        guard self.flags.contains(.pointopoint) else {return nil}
         return getIP6Addresses(of: RTAX_BRD).first
     }
 
