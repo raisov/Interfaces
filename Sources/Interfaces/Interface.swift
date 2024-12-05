@@ -96,7 +96,7 @@ public enum Interfaces {
     /// Get network interfaces innformation
     public static func list() -> any Sequence<any Interface> {
 #if canImport(Darwin.net.route)
-        RTInterfaces()
+        RTSequence()
 #else
         IFAInterface.listInterfaces()
 #endif

@@ -350,7 +350,7 @@ public final class RTIterator: IteratorProtocol {
         baseAddress.deallocate()
     }
     
-    public func next() -> RTInterface? {
+    public func next() -> (any Interface)? {
         while offset < size {
             let (version, type, length) = baseAddress.advanced(
                 by: offset
