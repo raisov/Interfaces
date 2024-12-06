@@ -92,13 +92,9 @@ extension Interface {
 
 // MARK: - Interfaces
 
-public enum Interfaces {
-    /// Get network interfaces innformation
-    public static func list() -> any Sequence<any Interface> {
-#if canImport(Darwin.net.route)
-        RTSequence()
-#else
-        IFAInterface.listInterfaces()
-#endif
-    }
-}
+public typealias Interfaces = RTSequence
+//#if canImport(Darwin.net.route)
+//        RTSequence
+//#else
+//        IFAInterface.listInterfaces()
+//#endif
