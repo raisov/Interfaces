@@ -1,7 +1,8 @@
 //  RTInterface.swift
-//  Interfaces package
-//  Copyright (c) 2018 Vladimir Raisov
-//  Licensed under MIT License
+//  Interfaces
+//  Created in 2018 by Vladimir Raisov
+//  Last modified 2024-12-07
+//
 import Sockets
 #if canImport(Darwin.net.route)
 import InterfaceType
@@ -43,7 +44,6 @@ final class RTInterface: Interface {
     }
     
     deinit {
-        print("deinit")
         UnsafeRawPointer(interfaceMessagePointer).deallocate()
     }
     
@@ -222,36 +222,41 @@ public struct RTSequence: Sequence {
 }
 
 final class RTIterator: IteratorProtocol {
-    private let baseAddress: UnsafeMutableRawPointer
-    private let endAddress: UnsafeRawPointer
-    private var currentAddress: UnsafeRawPointer
+    private let baseAddress: UnsafeRawPointer?
+    private let endAddress: UnsafeRawPointer?
+    private var currentAddress: UnsafeRawPointer!
     
     init() {
+        var base: UnsafeMutableRawPointer?
+        var end: UnsafeMutableRawPointer?
         var requiredMemory: size_t = 0
         var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST, 0]
         
-        guard sysctl(&mib[0], 6, nil, &requiredMemory, nil, 0) == 0 else {
-            fatalError(String(validatingCString: strerror(errno)) ?? "")
+        if sysctl(&mib[0], 6, nil, &requiredMemory, nil, 0) == 0 {
+            base = UnsafeMutableRawPointer.allocate(
+                byteCount: requiredMemory,
+                alignment: MemoryLayout<rt_msghdr>.alignment
+            )
+        } else {
+            assert(false, String(validatingCString: strerror(errno)) ?? "")
         }
         
-        
-        baseAddress = UnsafeMutableRawPointer.allocate(
-            byteCount: requiredMemory,
-            alignment: MemoryLayout<rt_msghdr>.alignment
-        )
-        endAddress = UnsafeRawPointer(baseAddress.advanced(by: requiredMemory))
-        currentAddress = UnsafeRawPointer(baseAddress)
-        
-        guard sysctl(&mib[0], 6, baseAddress, &requiredMemory, nil, 0) == 0 else {
-            fatalError(String(validatingCString: strerror(errno)) ?? "")
+        if let base, sysctl(&mib[0], 6, base, &requiredMemory, nil, 0) == 0 {
+            end = base.advanced(by: requiredMemory)
+            currentAddress = UnsafeRawPointer(base)
+        } else {
+            assert(false, String(validatingCString: strerror(errno)) ?? "")
         }
+        
+        (self.baseAddress, self.endAddress) = (UnsafeRawPointer(base), UnsafeRawPointer(end))
     }
     
     deinit {
-        baseAddress.deallocate()
+        baseAddress?.deallocate()
     }
     
     func next() -> (any Interface)? {
+        guard let endAddress else { return nil }
         while currentAddress != endAddress {
             let rtm_p = currentAddress.assumingMemoryBound(to: rt_msghdr.self)
             let messageLength = Int(rtm_p.pointee.rtm_msglen)
