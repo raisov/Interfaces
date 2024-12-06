@@ -343,10 +343,10 @@ public final class RTIterator: IteratorProtocol {
             let messageLength = Int(rtm_p.pointee.rtm_msglen)
             assert(offset + messageLength <= size)
             guard offset + messageLength <= size else { return nil }
+            currentAddress = currentAddress.advanced(by: messageLength)
             if let interface = RTInterface(currentAddress, size: messageLength) {
                 return interface
             }
-            currentAddress = currentAddress.advanced(by: messageLength)
         }
         return nil
     }
