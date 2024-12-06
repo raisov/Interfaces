@@ -20,12 +20,13 @@ public final class RTInterface: Interface {
     /// - parameter interfaceMessages: part of the `sysctl` buffer with
     ///   information about the interface being created.
     public init?(_ address: UnsafeRawPointer, size: Int) {
+        let rtm_p = address.assumingMemoryBound(to: rt_msghdr.self)
+        guard rtm_p.pointee.rtm_version == RTM_VERSION else { return nil }
+        guard rtm_p.pointee.rtm_type == RTM_IFINFO else { return nil }
+        
         let ifm_p = address.assumingMemoryBound(to: if_msghdr.self)
-        guard ifm_p.pointee.ifm_version == RTM_VERSION else { return nil }
-        guard ifm_p.pointee.ifm_type == RTM_IFINFO else { return nil }
         guard ifm_p.pointee.ifm_addrs & RTA_IFP != 0 else { return nil }
         guard ifm_p.pointee.ifm_index != 0 else { return nil }
-        
         let sdl_p = UnsafeRawPointer(ifm_p.advanced(by: 1)).assumingMemoryBound(to: sockaddr_dl.self)
         guard sdl_p.pointee.family == sockaddr_dl.family else { return nil }
         guard sdl_p.pointee.sdl_len >= sockaddr_dl.size else { return nil }
@@ -43,6 +44,7 @@ public final class RTInterface: Interface {
     }
     
     deinit {
+        print("deinit")
         UnsafeRawPointer(interfaceMessagePointer).deallocate()
     }
     
@@ -343,10 +345,9 @@ public final class RTIterator: IteratorProtocol {
             let messageLength = Int(rtm_p.pointee.rtm_msglen)
             assert(offset + messageLength <= size)
             guard offset + messageLength <= size else { return nil }
+            let interface = RTInterface(currentAddress, size: messageLength)
             currentAddress = currentAddress.advanced(by: messageLength)
-            if let interface = RTInterface(currentAddress, size: messageLength) {
-                return interface
-            }
+            if let interface { return interface }
         }
         return nil
     }
