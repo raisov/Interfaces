@@ -82,7 +82,7 @@ final class IFAIterator: IteratorProtocol {
     }
     
     func next() -> (any Interface)? {
-        guard var address = currentAddress else { return nil }
+        guard let address = currentAddress else { return nil }
         let name = String(cString: address.pointee.ifa_name)
         var type: UInt32?
         var link: [UInt8] = []
@@ -170,8 +170,11 @@ final class IFAIterator: IteratorProtocol {
                 baudrate: baudrate,
                 ip4: ip4,
                 ip6: ip6,
+                mask4: mask4,
                 masks6: masks6,
-                flags: InterfaceFlags(rawValue: flags)
+                flags: InterfaceFlags(rawValue: flags),
+                dst4: dst4,
+                dst6: dst6
             )
         }
     }
