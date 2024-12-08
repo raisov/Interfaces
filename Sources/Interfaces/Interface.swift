@@ -18,11 +18,17 @@ public protocol Interface {
     var name: String { get }
     
     /// Hardware (link level) address of interface;
-    /// so-called MAC address for ethernet compatible interface.
+    /// MAC address for ethernet compatible interface.
     var link: [UInt8] { get }
     
     /// That's it, the type of interface.
+    /// This value is rarely useful because many interfaces has type .ethernet,
+    /// but actually only 'looks like' Ethernet.
     var type: InterfaceType? { get }
+    
+    /// Functional type of interface (wired, WiFi, cellular...)
+    /// This is an indication of how the interface fits into the system.
+    var functionalType: FunctionalType? { get }
 
     /// Maximum Transmission Unit size for interface.
     var mtu: UInt32 { get }
@@ -88,6 +94,26 @@ extension Interface {
                 return n
             }
         }
+    }
+}
+
+extension Interface {
+    public var functionalType: FunctionalType? {
+        var ifr = ifreq()
+        memset(&ifr.ifr_name, 0, MemoryLayout<ifreq>.size)
+        
+        var str = name.cString(using: .ascii)!
+        let length = min(name.count, MemoryLayout.size(ofValue:  ifr.ifr_name))
+        memcpy(&ifr.ifr_name, &str, length)
+        
+        guard (0 == withUnsafeMutableBytes(of: &ifr) {
+            let h = socket(AF_INET, SOCK_DGRAM, 0)
+            defer { close(h) }
+            let p = $0.baseAddress!
+            return ioctl(h, UInt(IOCTLRequest.functionalType.rawValue), p)
+        }) else { return nil }
+
+        return FunctionalType(rawValue: ifr.ifr_ifru.ifru_functional_type)
     }
 }
 
