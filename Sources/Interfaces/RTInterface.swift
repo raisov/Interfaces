@@ -14,30 +14,20 @@ final class RTInterface: Interface {
     
     /// Contains routing messages with information about network interface
     private let interfaceMessagePointer: UnsafePointer<if_msghdr>
-    private let interfaceMessageSize: Int
+    fileprivate let interfaceMessageSize: Int
     
     /// Creates `Interface` as an element of `Interfaces` collection.
     /// - parameter interfaceMessages: part of the `sysctl` buffer with
     ///   information about the interface being created.
-    init?(_ address: UnsafeRawPointer, size: Int) {
-        let rtm_p = address.assumingMemoryBound(to: rt_msghdr.self)
-        guard rtm_p.pointee.rtm_version == RTM_VERSION else { return nil }
-        guard rtm_p.pointee.rtm_type == RTM_IFINFO else { return nil }
-        
-        let ifm_p = address.assumingMemoryBound(to: if_msghdr.self)
-        guard ifm_p.pointee.ifm_addrs & RTA_IFP != 0 else { return nil }
-        guard ifm_p.pointee.ifm_index != 0 else { return nil }
-        let sdl_p = UnsafeRawPointer(ifm_p.advanced(by: 1)).assumingMemoryBound(to: sockaddr_dl.self)
-        guard sdl_p.pointee.family == sockaddr_dl.family else { return nil }
-        guard sdl_p.pointee.sdl_len >= sockaddr_dl.size else { return nil }
-        guard sdl_p.index == ifm_p.pointee.ifm_index else { return nil }
+    init?(_ pointer: UnsafeRawPointer, size: Int) {
+        guard pointer.isInterfaceMessagePointer else { return nil }
         
         let buf_p = UnsafeMutableRawPointer.allocate(
             byteCount: size,
             alignment: MemoryLayout<if_msghdr>.alignment
         )
         
-        buf_p.copyMemory(from: address, byteCount: size)
+        buf_p.copyMemory(from: pointer, byteCount: size)
         
         interfaceMessagePointer = UnsafeRawPointer(buf_p).assumingMemoryBound(to: if_msghdr.self)
         interfaceMessageSize = size
@@ -222,9 +212,9 @@ public struct RTSequence: Sequence {
 }
 
 final class RTIterator: IteratorProtocol {
-    private let baseAddress: UnsafeRawPointer?
-    private let endAddress: UnsafeRawPointer?
-    private var currentAddress: UnsafeRawPointer!
+    private let basePointer: UnsafeRawPointer?
+    private let endPointer: UnsafeRawPointer?
+    private var currentPointer: UnsafeRawPointer!
     
     init() {
         var base: UnsafeMutableRawPointer?
@@ -243,31 +233,70 @@ final class RTIterator: IteratorProtocol {
         
         if let base, sysctl(&mib[0], 6, base, &requiredMemory, nil, 0) == 0 {
             end = base.advanced(by: requiredMemory)
-            currentAddress = UnsafeRawPointer(base)
+            currentPointer = Self.firstInterfaceMessagePointer(from: base, to: end!)
         } else {
             assert(false, String(validatingCString: strerror(errno)) ?? "")
         }
         
-        (self.baseAddress, self.endAddress) = (UnsafeRawPointer(base), UnsafeRawPointer(end))
+        (self.basePointer, self.endPointer) = (UnsafeRawPointer(base), UnsafeRawPointer(end))
     }
     
     deinit {
-        baseAddress?.deallocate()
+        basePointer?.deallocate()
     }
     
     func next() -> (any Interface)? {
-        guard let endAddress else { return nil }
-        while currentAddress != endAddress {
-            let rtm_p = currentAddress.assumingMemoryBound(to: rt_msghdr.self)
+        guard let endPointer else { return nil }
+         guard currentPointer != endPointer else { return nil }
+            let rtm_p = currentPointer.assumingMemoryBound(to: rt_msghdr.self)
             let messageLength = Int(rtm_p.pointee.rtm_msglen)
-            let nextAddress = currentAddress.advanced(by: messageLength)
-            assert(nextAddress <= endAddress)
-            guard nextAddress <= endAddress else { return nil }
-            let interface = RTInterface(currentAddress, size: messageLength)
-            currentAddress = nextAddress
-            if let interface { return interface }
+            let next = Self.firstInterfaceMessagePointer(
+                from: currentPointer.advanced(by: messageLength),
+                to: endPointer
+            )
+        let size = next - currentPointer
+        let interface = RTInterface(currentPointer, size: size)
+        currentPointer = next
+        return interface
+    }
+    
+    private static func firstInterfaceMessagePointer(
+        from start: UnsafeRawPointer, to end: UnsafeRawPointer
+    ) -> UnsafeRawPointer {
+        var pointer = start
+        while pointer != end {
+            let rtm_p = pointer.assumingMemoryBound(to: rt_msghdr.self)
+            let messageLength = Int(rtm_p.pointee.rtm_msglen)
+            assert(messageLength >= 4, "malformed routing message")
+            guard messageLength >= 4 else { return end }
+            let next = pointer.advanced(by: messageLength)
+            assert(next <= end)
+            guard next <= end else { return end }
+            if pointer.isInterfaceMessagePointer {
+                return pointer
+            }
+            pointer = next
         }
-        return nil
+        return end
+    }
+}
+
+fileprivate extension UnsafeRawPointer {
+    var isInterfaceMessagePointer: Bool {
+        let rtm_p = assumingMemoryBound(to: rt_msghdr.self)
+        guard rtm_p.pointee.rtm_version == RTM_VERSION else { return false }
+        guard rtm_p.pointee.rtm_type == RTM_IFINFO else { return false }
+        
+        let ifm_p = assumingMemoryBound(to: if_msghdr.self)
+        guard ifm_p.pointee.ifm_addrs & RTA_IFP != 0 else { return false }
+        guard ifm_p.pointee.ifm_index != 0 else { return false }
+        assert(rtm_p.pointee.rtm_msglen >= MemoryLayout<if_msghdr>.size, "malformed routing message")
+        guard rtm_p.pointee.rtm_msglen >= MemoryLayout<if_msghdr>.size else { return false }
+        let sdl_p = UnsafeRawPointer(ifm_p.advanced(by: 1)).assumingMemoryBound(to: sockaddr_dl.self)
+        guard sdl_p.pointee.family == sockaddr_dl.family else { return false }
+        guard sdl_p.pointee.sdl_len >= sockaddr_dl.size else { return false }
+        guard sdl_p.index == ifm_p.pointee.ifm_index else { return false }
+        return true
     }
 }
 #endif
