@@ -27,6 +27,8 @@ typedef enum __attribute__((enum_extensibility(open))) : u_int32_t {
     fireware = IFT_IEEE1394,
     /// Transparent bridge interface.
     bridge = IFT_BRIDGE,
+    ///  Cellular
+    cellular = IFT_CELLULAR,
 } InterfaceType;
 
 #endif /* InterfaceType_h */

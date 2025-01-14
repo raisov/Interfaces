@@ -16,15 +16,14 @@ typedef enum __attribute__((enum_extensibility(open))) : unsigned long {
 
 typedef enum __attribute__((enum_extensibility(open))) : u_int32_t {
     unknown       = IFRTYPE_FUNCTIONAL_UNKNOWN,
-    loopback    = IFRTYPE_FUNCTIONAL_LOOPBACK,
+    loopback      = IFRTYPE_FUNCTIONAL_LOOPBACK,
     wired         = IFRTYPE_FUNCTIONAL_WIRED,
-    wifiInfra     = IFRTYPE_FUNCTIONAL_WIFI_INFRA,
-    wifiAWDL      = IFRTYPE_FUNCTIONAL_WIFI_AWDL,
+    wifi          = IFRTYPE_FUNCTIONAL_WIFI_INFRA,
+    awdl          = IFRTYPE_FUNCTIONAL_WIFI_AWDL,
     cellular      = IFRTYPE_FUNCTIONAL_CELLULAR,
     intcoproc     = IFRTYPE_FUNCTIONAL_INTCOPROC,
     companionLink = IFRTYPE_FUNCTIONAL_COMPANIONLINK,
     management    = IFRTYPE_FUNCTIONAL_MANAGEMENT,
-    last          = IFRTYPE_FUNCTIONAL_LAST,
 } FunctionalType;
 
 #endif /* FunctionalType_h */

@@ -1,7 +1,8 @@
 //  Interface.swift
-//  Interfaces package
-//  Copyright (c) 2018 Vladimir Raisov
-//  Licensed under MIT License
+//  Interfaces
+//  Created in 2018 by Vladimir Raisov
+//  Last modified 2024-12-07
+//
 import Darwin.net
 import Sockets
 import InterfaceType
@@ -17,14 +18,17 @@ public protocol Interface {
     var name: String { get }
     
     /// Hardware (link level) address of interface;
-    /// so-called MAC address for ethernet compatible interface.
+    /// MAC address for ethernet compatible interface.
     var link: [UInt8] { get }
     
     /// That's it, the type of interface.
+    /// This value is rarely useful because many interfaces has type .ethernet,
+    /// but actually only 'looks like' Ethernet.
     var type: InterfaceType? { get }
     
-    /// This interface options.
-    var flags: InterfaceFlags { get }
+    /// Functional type of interface (wired, WiFi, cellular...)
+    /// This is an indication of how the interface fits into the system.
+    var functionalType: FunctionalType? { get }
 
     /// Maximum Transmission Unit size for interface.
     var mtu: UInt32 { get }
@@ -38,11 +42,11 @@ public protocol Interface {
     /// Array of all IPv4 addresses (including aliases) of the interface.
     var ip4: [in_addr] { get }
     
-    /// IPv4 network mask.
-    var mask4: in_addr? { get }
-    
     /// Array of all IPv6 addresses of the interface.
     var ip6: [in6_addr] { get }
+    
+    /// IPv4 network mask.
+    var mask4: in_addr? { get }
     
     /// Array of all IPv6 network masks of the interface.
     /// - Note: The number and order of the masks correspond to the number and order
@@ -54,6 +58,9 @@ public protocol Interface {
     /// ```
     var masks6: [in6_addr] { get }
     
+    /// This interface options.
+    var flags: InterfaceFlags { get }
+
     /// Interface broadcast address, if applicable.
     var broadcast: in_addr? { get }
 
@@ -90,15 +97,30 @@ extension Interface {
     }
 }
 
-// MARK: - Interfaces
+extension Interface {
+    public var functionalType: FunctionalType? {
+        var ifr = ifreq()
+        memset(&ifr.ifr_name, 0, MemoryLayout<ifreq>.size)
+        
+        var str = name.cString(using: .ascii)!
+        let length = min(name.count, MemoryLayout.size(ofValue:  ifr.ifr_name))
+        memcpy(&ifr.ifr_name, &str, length)
+        
+        guard (0 == withUnsafeMutableBytes(of: &ifr) {
+            let h = socket(AF_INET, SOCK_DGRAM, 0)
+            defer { close(h) }
+            let p = $0.baseAddress!
+            return ioctl(h, UInt(IOCTLRequest.functionalType.rawValue), p)
+        }) else { return nil }
 
-public enum Interfaces {
-    /// Get network interfaces innformation
-    public static func list() -> any Sequence<any Interface> {
-#if canImport(Darwin.net.route)
-        RTInterfaces()
-#else
-        IFAInterface.listInterfaces()
-#endif
+        return FunctionalType(rawValue: ifr.ifr_ifru.ifru_functional_type)
     }
 }
+
+// MARK: - Interfaces
+
+#if canImport(Darwin.net.route)
+public typealias Interfaces = RTSequence
+#else
+public typealias Interfaces = IFASequence
+#endif
